@@ -1,0 +1,9 @@
+{
+  "url": "https://url.to.galaxy",
+  "username": "galaxy-user-name",
+  "password": "galaxy-user-password",
+  "api_key": "galaxy-user-api-key",
+  "galaxy_test_name": "name-of-galaxy-server",
+  "handlers": [
+      "handler-1"    ]
+}

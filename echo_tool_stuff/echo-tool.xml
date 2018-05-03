@@ -1,0 +1,17 @@
+<tool id="echo_main_handler-1" name="Echo on main_handler-1">
+    <requirements>
+      <requirement type="package" version="2.7">python</requirement>
+      <yield/>
+    </requirements>
+    <hidden>True</hidden>
+    <command><![CDATA[
+        echo "$echo" > "$output";
+        python -V 2> "$output";
+    ]]></command>
+    <inputs>
+        <param name="echo" type="text" title="Text to echo"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="txt" />
+    </outputs>
+</tool>
