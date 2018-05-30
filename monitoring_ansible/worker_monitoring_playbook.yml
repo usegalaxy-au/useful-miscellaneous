@@ -3,6 +3,7 @@
 - name: Setup monitoring on Worker nodes of a cluster
   hosts: workers
   become: True
-  #vars_files:
+  vars_files:
+      - defaults/main.yml
   roles:
       - worker

@@ -4,4 +4,7 @@
 stats_server: "http://stats.genome.edu.au:8086"
 stats_database: "galaxy_aust"
 
+telegraf_version: "1.6.3"
 telegraf_url: "https://dl.influxdata.com/telegraf/releases/telegraf_1.6.3-1_amd64.deb"
+
+hostname_prefix: "galaxy-aust"

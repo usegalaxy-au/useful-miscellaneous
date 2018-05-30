@@ -3,7 +3,7 @@
 
 telegraf_agent_version: "{{ telegraf_version }}"
 telegraf_download_url: "{{ telegraf_url }}"
-telegraf_agent_hostname: "{{ hostname_prefix }}"."{{ ansible_fqdn }}"
+telegraf_agent_hostname: "{{ hostname_prefix }}.{{ ansible_fqdn }}"
 telegraf_agent_interval: 10
 telegraf_agent_debug: False
 telegraf_agent_round_interval: True
@@ -30,6 +30,8 @@ telegraf_plugins_default:
     config:
       - percpu = true
   - plugin: disk
+  - plugin: kernel
+  - plugin: processes
   - plugin: io
   - plugin: mem
   - plugin: net
