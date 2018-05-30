@@ -1,0 +1,21 @@
+---
+# This set of tasks will install telegraf and set the config.
+
+# Install telegraf from the telegraf github
+- name: Install telegraf as .deb file from telegraf's github
+  apt:
+    deb: "{{ telegraf_url }}"
+    state: present
+  become: yes
+  become_user: root
+
+# copy the configuration template and restart telgraf
+- name: Copy the config template to the correct location.
+  template:
+      src: telegraf.conf.j2
+      dest: /etc/telegraf/telegraf.conf
+      owner: root
+      group: root
+      mode: 0640
+  become: yes
+  notify: "Restart Telegraf"

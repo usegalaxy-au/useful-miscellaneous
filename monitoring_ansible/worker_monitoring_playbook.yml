@@ -1,0 +1,8 @@
+---
+
+- name: Setup monitoring on Worker nodes of a cluster
+  hosts: workers
+  become: True
+  #vars_files:
+  roles:
+      - worker
