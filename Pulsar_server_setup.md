@@ -232,6 +232,15 @@ If not, then add `cloudlaunch` and `cloudman` security groups to the server in t
     ```
     sudo systemctl status nginx
     ```
+
+## Start it up!
+```sh
+cd /mnt/pulsar/server
+source ../venv/bin/activate
+./run.sh -c /mnt/pulsar/config -m paster --daemon
+```
+
+
 ## Try and connect to it
 
 1. Modify a galaxy server's `job_conf.xml` so that it sends jobs to the new server.
