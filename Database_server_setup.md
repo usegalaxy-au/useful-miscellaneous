@@ -1,3 +1,9 @@
+---
+author:
+- Derek Benson
+title: 'Galaxy-Dev Documentation'
+---
+
 Server Details
 ==============
 
@@ -60,7 +66,7 @@ Add the following to /etc/postfix/main.cf
     relay_transport = smtp
     inet_protocols = ipv4
 
-Edit /etc/postfix/sasl[\_]{}passwd
+Edit /etc/postfix/sasl_passwd
 
     [smtp.gmail.com]:587    USERNAME@gmail.com:PASSWORD
 
@@ -127,8 +133,8 @@ the data directory for that database e.g. /data/production
     log_rotation_age = 0
     log_rotation_size = 10MB
 
-Supervisor
-==========
+Supervisor Setup
+================
 
 Install and configure. Add username and password to main config file for
 safety. Create the postgresql config file as below.
@@ -176,7 +182,7 @@ Migrating Cloudman Host Database
 Modify cloudman service files cm/services/apps/{galaxyreports.py
 galaxy.py proftpd.py} to remove postgres as a dependency. Modify
 cloudman cm/util/paths.py for new database port and make sure we return
-port from psql[\_]{}db[\_]{}port function. Write out cloudman files.
+port from psql_db_port function. Write out cloudman files.
 
     cd /root && mkdir CM && cd CM && tar -xzf /mnt/cm/cm.tar.gz
     # Edit files and then create tar ball and ask cloudman to store the cluster config
