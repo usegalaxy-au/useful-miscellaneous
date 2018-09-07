@@ -249,3 +249,49 @@ source ../venv/bin/activate
     * monitor the pulsar log and htop etc.
 
 With any luck, it should all be done!
+
+# Worker Nodes!
+
+There are a few issues with worker nodes with this setup atm. They don't see the nfs share /mnt/pulsar automatically. Infact, you need to do some extra stuff to get the head node to share it and to workers to see it.
+
+## Add the `/mnt/pulsar` shared directory to all of the worker nodes.
+
+* On the head node, add the following line to `/etc/exports`:
+```
+/mnt/pulsar *(rw,sync,no_root_squash,no_subtree_check)
+```
+
+* Then reload the export table with:
+```sh
+sudo exportfs -a
+```
+
+* On each worker node you now need to mount the nfs share to the correct location.
+
+```sh
+ssh w1 #or what ever worker node you are changing
+
+sudo mkdir /mnt/pulsar
+sudo mount pulsar-xxx.genome.edu.au:/mnt/pulsar /mnt/pulsar
+```
+
+* Add it to the fstab so it will work in the future without having to manually mount it. Add the following line to the end of `/etc/fstab`:
+```
+pulsar-nci.genome.edu.au:/mnt/pulsar    /mnt/pulsar nfs auto,nofail,noatime,nolock,intr,tcp,actimeo=1800 0 0
+```
+
+## Controlling worker nodes with `scontrol`
+
+If you need to change settings on a worker or play with it in anyway that could make it unstable for job running purposes, it's better to empty it of jobs first. You can set it's state to drain, wait for the jobs running on it to finish, alter it in whatever way you need and then set it's state to resume.
+
+**Set to drain**
+
+```sh
+sudo scontrol update node=w1 state=drain reason=maintenance
+```
+
+**Resume**
+
+```sh
+sudo scontrol update node=w1 state=resume
+```
