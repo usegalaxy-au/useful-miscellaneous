@@ -26,11 +26,11 @@ Some entries were added to /etc/hosts to reduce reliance on DNS.
 
 Planning for server and database ports as follows:
 
-  Hostname                IP          Postgres Port
-  ---------------- ----------------- ---------------
-  galaxy-dev        203.101.225.224       5960
-  galaxy-staging    203.101.224.165       5961
-  galaxy-prod       203.101.224.120       5962
+| Hostname        |        IP        |  Postgres Port  |
+|: ---------------|:----------------:|:---------------:|
+| galaxy-dev      |  203.101.225.224 |      5960       |
+| galaxy-staging  |  203.101.224.165 |      5961       |
+| galaxy-prod     |  203.101.224.120 |      5962       |
 
 Set up the firewall
 
