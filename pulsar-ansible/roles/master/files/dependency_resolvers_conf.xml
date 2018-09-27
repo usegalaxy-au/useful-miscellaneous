@@ -1,0 +1,9 @@
+<dependency_resolvers>
+
+	<conda auto_install="True" auto_init="True"/>
+
+	<galaxy_packages versionless="true" />
+
+	<conda versionless="true" />
+
+</dependency_resolvers>

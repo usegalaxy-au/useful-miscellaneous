@@ -1,0 +1,5 @@
+
+master_node_address: "<master_node_server_dns>"
+pulsar_location: /mnt/pulsar
+private_token: "<put_your_long_complex_token_here>"
+admin_email_address: "<server admin email address>"

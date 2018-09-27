@@ -1,0 +1,10 @@
+---
+# handlers file for ansible-telegraf
+
+- name: "Restart nginx"
+  systemd:
+    name: nginx
+    state: restarted
+    enabled: yes
+  become: yes
+  become_user: root

@@ -1,0 +1,24 @@
+---
+
+- name: Add the mount directory for the master's pulsar mount
+  file:
+      path: "{{ pulsar_location }}"
+      state: directory
+      mode: 0755
+      become: yes
+      become_user: root
+
+- name: Mount the pulsar filesystem from the headnode
+  mount:
+    name: "{{ pulsar_location }}"
+    src: "{{ master_node_address }}:{{ pulsar_location }}"
+    state: present
+  register: fstab
+  become: yes
+  become_user: root
+
+- name: Reload fstab
+  command: mount -a
+  #when: fstab.changed
+  become: yes
+  become_user: root

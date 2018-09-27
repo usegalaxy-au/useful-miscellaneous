@@ -1,0 +1,177 @@
+---
+
+- include: pre-tasks.yml
+
+#
+#
+# Setup filesystem to take pulsar
+#
+#
+
+- name: Make the pulsar directory
+  file:
+      path: "{{ pulsar_location }}"
+      owner: ubuntu
+      group: ubuntu
+      mode: 0755
+  become: yes
+  become_user: root
+
+- name: Add other directories
+  file:
+      path: "{{ item }}"
+  with_items:
+      - "{{ pulsar_config_location }}"
+      - "{{ pulsar_files_location }}"
+
+#
+#
+# Clone the Pulsar Git Repo
+#
+#
+
+- name: Clone the pulsar git repo
+  git:
+      repo: 'https://github.com/galaxyproject/pulsar.git'
+      dest: "{{ pulsar_server_location}}"
+
+#
+#
+# Create the Pulsar Virtualenv
+#
+#
+
+- name: Create a virtualenv for pulsar
+  command: virtualenv "{{ pulsar_venv_location }}"
+
+- name: Edit the requirements.txt file to install drmaa
+  replace:
+      path: "{{ pulsar_server_location}}/requirements.txt"
+      regexp: '#drmaa'
+      replace: 'drmaa'
+      backup: yes
+
+- name: install the virtualenv requirements
+  pip:
+      virtualenv: "{{ pulsar_venv_location }}"
+      requirements: "{{pulsar_server_location}}/requirements.txt"
+
+- name: Install some other pip stuff
+  pip:
+      virtualenv: "{{ pulsar_venv_location }}"
+      name: "{{ item }}"
+  with_items:
+      - pyOpenSSL
+
+#
+#
+# Copy the config files
+#
+#
+
+- name: Copy the config files - from files
+  copy:
+      src: "{{ item }}"
+      dest: "{{ pulsar_config_location }}/{{ item }}"
+      mode: 0755
+  with_items:
+      - dependency_resolvers_conf.xml
+      - job_metrics_conf.xml
+      - local_env.sh
+
+- name: Copy the config files - from templates
+  template:
+      src: "{{ item }}"
+      dest: "{{ pulsar_config_location }}/{{ item }}"
+      mode: 0755
+  with_items:
+      - app.yml
+      - server.ini
+
+#
+#
+# Secure the connections
+#
+#
+
+- name: Create an openssl key
+  shell: "openssl genrsa 1024 > host.key && chmod 400 host.key"
+  args:
+      chdir: /home/ubuntu
+
+- name: Create an openssl cert with the key
+  shell: "openssl req -new -x509 -nodes -sha1 -days 365 -key host.key > host.cert"
+  args:
+      chdir: /home/ubuntu
+
+- name: Create an openssl pem
+  shell: "cat host.cert host.key > host.pem && chmod 400 host.pem"
+  args:
+      chdir: /home/ubuntu
+
+- name: Copy the key to ssl certs location
+    copy:
+        src: "/home/ubuntu/host.pem"
+        dest: "/etc/ssl/serts/host.pem"
+        owner: ubuntu
+        group: ubuntu
+        mode: 0400
+        remote_src: yes
+    become: yes
+    become_user: root
+
+#
+#
+# Letsencrypt nginx!
+#
+#
+
+- name: Modify the default.server file to add the server name.
+  lineinfile:
+      path: /etc/nginx/sites-enabled/default.server
+      line: "server_name {{ master_node_address }};"
+      insertafter: 'proxy_read_timeout'
+  become: yes
+  become_user: root
+  notify: "Resart nginx"
+
+- name: Obtain a certificate
+  shell: "certbot --nginx --noninteractive --agree-tos --email {{ admin_email_address }} -d {{ master_node_address }}"
+  become: yes
+  become_user: root
+  notify: "Restart nginx"
+
+#
+#
+# Add the pulsar location to the nginx config
+#
+#
+
+- name: Add the pulsar location to nginx
+  copy:
+      src: pulsar.locations
+      dest: /etc/nginx/sites-enabled/pulsar.locations
+      mode: 0755
+  become: yes
+  become_user: root
+  notify: "Restart nginx"
+
+#
+#
+# Add the pulsar directory to the nfs exports list
+#
+#
+
+- name: Add pulsar dir to exports
+  lineinfile:
+      path: /etc/exports
+      line: "{{ pulsar_location }} *(rw,sync,no_root_squash,no_subtree_check)"
+      regexp: ''
+      insertafter: EOF
+  become: yes
+  become_user: root
+
+- name: Reload the exports
+  shell: "exportfs -a"
+  become: yes
+  become_user: root 

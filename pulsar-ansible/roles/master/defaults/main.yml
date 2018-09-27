@@ -1,0 +1,6 @@
+
+
+pulsar_config_location: "{{ pulsar_location }}/config"
+pulsar_files_location: "{{ pulsar_location }}/files/staging"
+pulsar_server_location: "{{ pulsar_location }}/server"
+pulsar_venv_location: "{{ pulsar_location }}/venv"

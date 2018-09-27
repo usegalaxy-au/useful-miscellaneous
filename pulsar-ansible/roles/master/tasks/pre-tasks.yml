@@ -1,0 +1,26 @@
+---
+
+#
+# Install some stuff for the OS
+#
+
+- name: Add the letsencrypt ppa
+  apt_repository:
+      repo: 'ppa:certbot/certbot'
+
+- name: Install some packages
+  apt:
+      name: "{{ item }}"
+      state: latest
+      update: yes
+  with_items:
+      - vim
+      - git
+      - htop
+      - atop
+      - libffi-dev
+      - python-dev
+      - libssl-dev
+      - python-certbot-nginx
+  become: yes
+  become_user: root
