@@ -1,0 +1,7 @@
+pg_host: galaxy-aust-db.genome.edu.au
+pg_port: 5962
+pg_user: galaxy
+pg_dbname: galaxy
+pg_password: production123
+warn_weeks: 11
+delete_weeks: 13
