@@ -1,7 +1,10 @@
-pg_host: galaxy-aust-db.genome.edu.au
-pg_port: 5962
+server_name: Galaxy Australia
+smtp_server: localhost
+from_addr: someone@somewhere.org
+pg_host: <dbserver address>
+pg_port: <port>
 pg_user: galaxy
 pg_dbname: galaxy
-pg_password: production123
+pg_password: <password>
 warn_weeks: 11
 delete_weeks: 13

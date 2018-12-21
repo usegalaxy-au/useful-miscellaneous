@@ -3,6 +3,10 @@
 """
 usnused_history_cleanup.py
 
+Author: Simon Gladman 2018 - University of Melbourne.
+
+License: MIT
+
 A script to help administer storage by:
     * Send users email if their history hasn't been updated for "threshold 1"
       weeks, telling them it will automatically be deleted by
@@ -17,6 +21,7 @@ and purge.
 It needs a config file in yaml format as follows:
 
 ---
+server_name: Galaxy Australia
 pg_host: <db_server_dns>
 pg_port: <pgsql_port_number>
 pg_user: galaxy
@@ -25,9 +30,6 @@ pg_password: <password>
 warn_weeks: 11
 delete_weeks: 13
 
-Author: Simon Gladman 2018 - University of Melbourne.
-
-License: MIT
 """
 from __future__ import print_function
 
@@ -39,15 +41,23 @@ import yaml
 from collections import defaultdict
 
 import psycopg2
+import smtplib
+from email.mime.text import MIMEText
+
+
 
 VERSION = 0.1
 PROGRAM_NAME = 'unused_history_cleanup.py'
 DESCRIPTION = 'Looks for old histories, warns users of their upcoming deletion and marks previously warned histories as deleted.'
 
-def send_mail():
-    return
-
 def transform_hists(hists):
+    """
+    transform_hists
+
+    Takes a list of dictionaries returned from `get_old_hists` and returns a dictionary of unique users
+    which contains  their username and email by id and a dictionary of lists of histories for each user id.
+
+    """
     users = defaultdict()
     user_hists = defaultdict(list)
     for h in hists:
@@ -56,6 +66,14 @@ def transform_hists(hists):
     return users, user_hists
 
 def get_old_hists(conn, age, verbose):
+    """
+    get_old_hists
+
+    Takes a psql connection, an age in weeks (int) and the verbosity level, runs a query on the connection
+    and returns a list of dictionaries of histories and their user details which haven't been updated for at least
+    that many weeks.
+
+    """
     SELECT_Q = """
         SELECT
             h.id, h.name, h.user_id, u.username, u.email
@@ -76,7 +94,74 @@ def get_old_hists(conn, age, verbose):
     hists = []
     for t in temp:
         hists.append({'id': t[0], 'name': t[1], 'uid': t[2], 'uname': t[3], 'email': t[4]})
+    curs.close()
     return hists
+
+def subtract_lists(hists1, hists2):
+    """
+    substracts the records in the second list from the records in the first list
+    """
+    for h in hists2:
+        if h in hists1:
+            hists1.remove(h)
+    return hists1
+
+def send_email_to_user(user, hists, warn, delete, server, smtp_server, from_addr, VERBOSE):
+    """
+    Sends warning emails to users stating their histories are about to be deleted.
+    """
+
+    MSG_TEXT = """
+Dear %s,
+
+You are receiving this email as one or more of your histories on the %s server
+have not been updated for %i weeks. They will be beyond the User Data Storage time limits soon.
+If you do not use or update them within the next %i weeks, they will automatically be deleted
+and purged from disk.
+
+You should download any files you wish to keep from this history within the next
+%i weeks. Instructions for doing so can be found at:
+
+https://galaxy-au-training.github.io/tutorials/modules/galaxy-data/
+
+The history(ies) in question are as follows:
+    """ % (user['uname'], server, warn, delete - warn, delete - warn)
+    MSG_TEXT += '\tHistory ID\tName\n'
+    for h in hists:
+        MSG_TEXT += '\t%s\t\t%s\n' % (h[0],h[1])
+    MSG_TEXT += """
+
+You can contact help@genome.edu.au if you have any queries.
+
+Yours,
+
+%s Admins.
+""" % server
+
+    email = user['email']
+    subject = "%s History Deletion Warning" % server
+
+    if VERBOSE:
+        print('Email sent:')
+        print("To: %s" % email)
+        print("From: %s" % from_addr)
+        print("Subject: %s" % subject)
+        print("----------------------")
+        print(MSG_TEXT)
+
+    mail_server = smtplib.SMTP('localhost')
+    msg = MIMEText(MSG_TEXT)
+    msg['To'] = email
+    msg['From'] = from_addr
+    msg['Subject'] = subject
+    msg['BCC'] = 'slugger70@gmail.com,g.price@qfab.org'
+
+    mail_server.sendmail(from_addr, [email,'slugger70@gmail.com','g.price@qfab.org'], msg.as_string())
+
+    mail_server.quit()
+
+    return
+
 
 def main():
     VERBOSE = False
@@ -116,6 +201,11 @@ def main():
     pg_user = conf['pg_user']
     pg_pass = conf['pg_password']
 
+    #Miscellaneous stuff
+    server_name = conf['server_name']
+    smtp_server = conf['smtp_server']
+    from_addr = conf['from_addr']
+
     #Threshold stuff
     warn_threshold = conf['warn_weeks']
     delete_threshold = conf['delete_weeks']
@@ -137,18 +227,23 @@ def main():
     if VERBOSE:
         print("Connection: %s" % conn, file=sys.stderr)
 
-    #Info Only: Print out lists of users and their histories to be:
-    #   * Warned
-    #   * Deleted
+    """
+    Info Only: Depending on the verbosity, prints out numbers of or lists of
+    users and their histories to be:
+       * Warned
+       * Deleted
+    """
     if args.info_only:
         warn_hists = get_old_hists(conn, warn_threshold, VERBOSE)
+        dont_warn_again = get_old_hists(conn, warn_threshold + 1, VERBOSE)
+        actually_warn_hists = subtract_lists(warn_hists, dont_warn_again)
         delete_hists = get_old_hists(conn, delete_threshold, VERBOSE)
         print('*******************************')
         if VERBOSE:
             print('The following users will get warnings (Histories are %i weeks old):' % warn_threshold)
         else:
             print('Number of users with %i week old histories to be warned and number histories to be warned about:' % warn_threshold)
-        user_warns, user_warn_hists = transform_hists(warn_hists)
+        user_warns, user_warn_hists = transform_hists(actually_warn_hists)
         hist_count = 0
         user_count = 0
         for u in user_warns.keys():
@@ -171,6 +266,52 @@ def main():
         return
 
     if args.actually_delete_things:
-        return
+        """
+        This will actually alter the database and actually delete things! Be very careful!
+        """
+        # First we need to get the deleteable histories.
+        delete_hists = get_old_hists(conn, delete_threshold, VERBOSE)
+        #Send this dictionary to the delete histories sub.
+        if len(delete_hists) > 0:
+            hist_ids = []
+            for h in delete_hists:
+                hist_ids.append(h['id'])
+            if VERBOSE:
+                print('These histories are to be marked as deleted.')
+                for h in hist_ids:
+                    print("History: %s" % h)
+            UPDATE_Q = """
+            UPDATE
+                history
+            SET
+                deleted = TRUE
+            WHERE
+                id = ANY( %s );
+            """
+            curr = conn.cursor()
+            if VERBOSE:
+                print('Running the following query to update the database')
+                print(curr.mogrify(UPDATE_Q, (hist_ids,)))
+            try:
+                curr.execute(UPDATE_Q, (hist_ids,))
+                conn.commit()
+            except psycopg2.Error as e:
+                print('Something went wrong with the commit. Rolling back')
+                print(e)
+                conn.rollback()
+                pass
+
+        # Now we need to email users who are getting warnings. :)
+        warn_hists = get_old_hists(conn, warn_threshold, VERBOSE)
+        dont_warn_again = get_old_hists(conn, warn_threshold + 1, VERBOSE)
+        actually_warn_hists = subtract_lists(warn_hists, dont_warn_again)
+        user_warns, user_warn_hists = transform_hists(actually_warn_hists)
+
+        conn.close()
+
+        for u in user_warns.keys():
+            send_email_to_user(user_warns[u], user_warn_hists[u], warn_threshold, delete_threshold, server_name, smtp_server, from_addr, VERBOSE)
+    return
+
 
 if __name__ == "__main__": main()
