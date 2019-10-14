@@ -106,7 +106,7 @@ def subtract_lists(hists1, hists2):
             hists1.remove(h)
     return hists1
 
-def send_email_to_user(user, hists, warn, delete, server, smtp_server, from_addr, VERBOSE):
+def send_email_to_user(user, hists, warn, delete, server, smtp_server, from_addr, response_addr, VERBOSE):
     """
     Sends warning emails to users stating their histories are about to be deleted.
     """
@@ -131,12 +131,12 @@ The history(ies) in question are as follows:
         MSG_TEXT += '\t%s\t\t%s\n' % (h[0],h[1])
     MSG_TEXT += """
 
-You can contact help@genome.edu.au if you have any queries.
+You can contact %s if you have any queries.
 
 Yours,
 
 %s Admins.
-""" % server
+""" % (response_addr, server)
 
     email = user['email']
     subject = "%s History Deletion Warning" % server
@@ -205,6 +205,7 @@ def main():
     server_name = conf['server_name']
     smtp_server = conf['smtp_server']
     from_addr = conf['from_addr']
+    response_addr = conf['response_addr']
 
     #Threshold stuff
     warn_threshold = conf['warn_weeks']
@@ -310,7 +311,7 @@ def main():
         conn.close()
 
         for u in user_warns.keys():
-            send_email_to_user(user_warns[u], user_warn_hists[u], warn_threshold, delete_threshold, server_name, smtp_server, from_addr, VERBOSE)
+            send_email_to_user(user_warns[u], user_warn_hists[u], warn_threshold, delete_threshold, server_name, smtp_server, from_addr, response_addr, VERBOSE)
     return
 
 

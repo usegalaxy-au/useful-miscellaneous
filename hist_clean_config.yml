@@ -1,6 +1,7 @@
 server_name: Galaxy Australia
 smtp_server: localhost
 from_addr: someone@somewhere.org
+response_addr: someone@somewhere.org
 pg_host: <dbserver address>
 pg_port: <port>
 pg_user: galaxy
