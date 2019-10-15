@@ -2,6 +2,7 @@ server_name: Galaxy Australia
 smtp_server: localhost
 from_addr: someone@somewhere.org
 response_addr: someone@somewhere.org
+bcc_addr: ['someone@somewhere.org','someoneelse@somewhere.org']
 info_url: https://galaxy-au-training.github.io/tutorials/modules/galaxy-data/
 pg_host: <dbserver address>
 pg_port: <port>

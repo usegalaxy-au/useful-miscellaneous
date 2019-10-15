@@ -22,6 +22,11 @@ It needs a config file in yaml format as follows:
 
 ---
 server_name: Galaxy Australia
+smtp_server: localhost
+from_addr: someone@somewhere.org
+response_addr: someone@somewhere.org
+bcc_addr: ['someone@somewhere.org','someoneelse@somewhere.org']
+info_url: https://galaxy-au-training.github.io/tutorials/modules/galaxy-data/
 pg_host: <db_server_dns>
 pg_port: <pgsql_port_number>
 pg_user: galaxy
@@ -29,7 +34,6 @@ pg_dbname: galaxy
 pg_password: <password>
 warn_weeks: 11
 delete_weeks: 13
-
 """
 from __future__ import print_function
 
@@ -106,7 +110,7 @@ def subtract_lists(hists1, hists2):
             hists1.remove(h)
     return hists1
 
-def send_email_to_user(user, hists, warn, delete, server, smtp_server, from_addr, response_addr, info_url, VERBOSE):
+def send_email_to_user(user, hists, warn, delete, server, smtp_server, from_addr, response_addr, bcc_addr, info_url, VERBOSE):
     """
     Sends warning emails to users stating their histories are about to be deleted.
     """
@@ -154,9 +158,9 @@ Yours,
     msg['To'] = email
     msg['From'] = from_addr
     msg['Subject'] = subject
-    msg['BCC'] = 'slugger70@gmail.com,g.price@qfab.org'
+    msg['BCC'] = '.'.join(bcc_addr)
 
-    mail_server.sendmail(from_addr, [email,'slugger70@gmail.com','g.price@qfab.org'], msg.as_string())
+    mail_server.sendmail(from_addr, [email] + bcc_addr, msg.as_string())
 
     mail_server.quit()
 
@@ -206,6 +210,7 @@ def main():
     smtp_server = conf['smtp_server']
     from_addr = conf['from_addr']
     response_addr = conf['response_addr']
+    bcc_addr = conf['bcc_addr']
     info_url = conf['info_url']
 
     #Threshold stuff
