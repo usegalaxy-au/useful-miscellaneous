@@ -22,6 +22,11 @@ It needs a config file in yaml format as follows:
 
 ---
 server_name: Galaxy Australia
+smtp_server: localhost
+from_addr: someone@somewhere.org
+response_addr: someone@somewhere.org
+bcc_addr: ['someone@somewhere.org','someoneelse@somewhere.org']
+info_url: https://galaxy-au-training.github.io/tutorials/modules/galaxy-data/
 pg_host: <db_server_dns>
 pg_port: <pgsql_port_number>
 pg_user: galaxy
@@ -29,7 +34,6 @@ pg_dbname: galaxy
 pg_password: <password>
 warn_weeks: 11
 delete_weeks: 13
-
 """
 from __future__ import print_function
 
@@ -106,13 +110,12 @@ def subtract_lists(hists1, hists2):
             hists1.remove(h)
     return hists1
 
-def send_email_to_user(user, hists, warn, delete, server, smtp_server, from_addr, VERBOSE):
+def send_email_to_user(user, hists, warn, delete, server, smtp_server, from_addr, response_addr, bcc_addr, info_url, VERBOSE):
     """
     Sends warning emails to users stating their histories are about to be deleted.
     """
 
-    MSG_TEXT = """
-Dear %s,
+    MSG_TEXT = """Dear %s,
 
 You are receiving this email as one or more of your histories on the %s server
 have not been updated for %i weeks. They will be beyond the User Data Storage time limits soon.
@@ -122,21 +125,22 @@ and purged from disk.
 You should download any files you wish to keep from this history within the next
 %i weeks. Instructions for doing so can be found at:
 
-https://galaxy-au-training.github.io/tutorials/modules/galaxy-data/
+%s
 
 The history(ies) in question are as follows:
-    """ % (user['uname'], server, warn, delete - warn, delete - warn)
+
+    """ % (user['uname'], server, warn, delete - warn, delete - warn, info_url)
     MSG_TEXT += '\tHistory ID\tName\n'
     for h in hists:
         MSG_TEXT += '\t%s\t\t%s\n' % (h[0],h[1])
     MSG_TEXT += """
 
-You can contact help@genome.edu.au if you have any queries.
+You can contact %s if you have any queries.
 
 Yours,
 
 %s Admins.
-""" % server
+""" % (response_addr, server)
 
     email = user['email']
     subject = "%s History Deletion Warning" % server
@@ -154,9 +158,9 @@ Yours,
     msg['To'] = email
     msg['From'] = from_addr
     msg['Subject'] = subject
-    msg['BCC'] = 'slugger70@gmail.com,g.price@qfab.org'
+    msg['BCC'] = '.'.join(bcc_addr)
 
-    mail_server.sendmail(from_addr, [email,'slugger70@gmail.com','g.price@qfab.org'], msg.as_string())
+    mail_server.sendmail(from_addr, [email] + bcc_addr, msg.as_string())
 
     mail_server.quit()
 
@@ -205,6 +209,9 @@ def main():
     server_name = conf['server_name']
     smtp_server = conf['smtp_server']
     from_addr = conf['from_addr']
+    response_addr = conf['response_addr']
+    bcc_addr = conf['bcc_addr']
+    info_url = conf['info_url']
 
     #Threshold stuff
     warn_threshold = conf['warn_weeks']
@@ -310,7 +317,7 @@ def main():
         conn.close()
 
         for u in user_warns.keys():
-            send_email_to_user(user_warns[u], user_warn_hists[u], warn_threshold, delete_threshold, server_name, smtp_server, from_addr, VERBOSE)
+            send_email_to_user(user_warns[u], user_warn_hists[u], warn_threshold, delete_threshold, server_name, smtp_server, from_addr, response_addr, info_url, VERBOSE)
     return
 
 
